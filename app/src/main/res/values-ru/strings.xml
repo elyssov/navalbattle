@@ -6,12 +6,16 @@
     <string name="menu_title">Морской Бой</string>
     <string name="menu_subtitle">Стратегическая версия</string>
     <string name="menu_new_game">Новая игра</string>
-    <string name="menu_settings">Настройки</string>
+    <string name="menu_settings">Правила игры</string>
     <string name="menu_about">О проекте</string>
     <string name="menu_support">Поддержать проект</string>
 
     <!-- Настройки -->
-    <string name="settings_title">Настройки</string>
+    <string name="settings_title">Правила игры</string>
+    <string name="settings_apply">Применить</string>
+    <string name="settings_cancel">Отмена</string>
+    <string name="lang_en">EN</string>
+    <string name="lang_ru">RU</string>
     <string name="settings_field_size">Размер поля</string>
     <string name="settings_landscape">Ландшафт</string>
     <string name="settings_game_mode">Режим</string>
