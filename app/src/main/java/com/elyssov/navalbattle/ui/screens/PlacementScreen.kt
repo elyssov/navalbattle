@@ -58,9 +58,10 @@ import com.elyssov.navalbattle.ui.theme.WreckBrown
 fun PlacementScreen(vm: GameViewModel) {
     val state by vm.state.collectAsState()
     val lang by vm.lang.collectAsState()
+    val playerIdx by vm.placingPlayer.collectAsState()
+    val handoff by vm.handoffPending.collectAsState()
     val gs = state ?: return
 
-    val playerIdx = 0
     val player = gs.players[playerIdx]
     val fieldSize = gs.settings.fieldSize.n
 
@@ -174,11 +175,28 @@ fun PlacementScreen(vm: GameViewModel) {
                 Text(stringResource(R.string.common_back))
             }
             Button(
-                onClick = { vm.goToBattle() },
+                onClick = { vm.finishPlacement() },
                 enabled = readyToFight,
                 modifier = Modifier.weight(2f)
             ) {
                 Text(stringResource(R.string.placement_ready))
+            }
+        }
+    }
+
+    if (handoff) {
+        Box(
+            modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("📱 →", color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.displayLarge)
+                Spacer(Modifier.height(16.dp))
+                Text("Pass the device to P${playerIdx + 1}", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.height(24.dp))
+                Button(onClick = { vm.completeHandoff() }, modifier = Modifier.width(220.dp).height(56.dp)) {
+                    Text("I'm P${playerIdx + 1} — ready")
+                }
             }
         }
     }
