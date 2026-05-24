@@ -21,8 +21,16 @@ class GameViewModel : ViewModel() {
     private val _state = MutableStateFlow<GameState?>(null)
     val state: StateFlow<GameState?> = _state.asStateFlow()
 
-    private val _lang = MutableStateFlow("ru")
+    private val _lang = MutableStateFlow(detectInitialLang())
     val lang: StateFlow<String> = _lang.asStateFlow()
+
+    companion object {
+        private fun detectInitialLang(): String {
+            // EN by default. Switch to RU only if the device locale is Russian.
+            val sys = java.util.Locale.getDefault().language
+            return if (sys == "ru") "ru" else "en"
+        }
+    }
 
     private val _mode = MutableStateFlow(BattleMode.Fire)
     val mode: StateFlow<BattleMode> = _mode.asStateFlow()
