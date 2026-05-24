@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -110,7 +111,10 @@ fun BattleScreen(vm: GameViewModel) {
 
     val player = gs.players[me]
     val nukeUsed = player.nuclearUsed
-    val nukeAvailable = !nukeUsed && gs.settings.fieldSize != FieldSize.Skirmish
+    val hasNukeSub = player.ships.any {
+        it.type == ShipType.Submarine && it.deployed && !it.sunk && it.nukeTorpedoLeft > 0
+    }
+    val nukeAvailable = !nukeUsed && gs.settings.fieldSize != FieldSize.Skirmish && hasNukeSub
 
     val hasTarkr = player.ships.any { it.type == ShipType.Tarkr && !it.sunk && it.launchers.any { l -> l.loaded && !l.damaged } }
     val hasCarrier = player.ships.any { it.type == ShipType.Carrier && !it.sunk && !it.avionicsBlocked && it.strikersLeft > 0 }
@@ -153,7 +157,7 @@ fun BattleScreen(vm: GameViewModel) {
 
         // Canvas — flexible weight so it adapts to screen size
         Box(
-            modifier = Modifier.fillMaxWidth().weight(1f).padding(8.dp).border(1.dp, MaterialTheme.colorScheme.tertiary)
+            modifier = Modifier.fillMaxWidth().weight(1f).padding(8.dp).clipToBounds().border(1.dp, MaterialTheme.colorScheme.tertiary)
         ) {
             when (view) {
                 BattleView.FleetMap -> {

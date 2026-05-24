@@ -193,17 +193,30 @@ fun DrawScope.drawShipSprite(camera: GridCamera, ship: Ship, sprite: ImageBitmap
     val anchor = ship.cells.first()
     val (topLeft, _) = camera.cellRect(anchor)
 
+    // Sprite aspect = width/height. Ship is drawn along its axis.
+    // Length = ship.size cells (occupy full length). Width = scaled by sprite aspect,
+    // centered across the perpendicular axis. Width must NOT exceed 1 cell.
+    val aspect = sprite.width.toFloat() / sprite.height.toFloat().coerceAtLeast(1f)
+    val lengthPx = cs * ship.size
+    val widthPx = (lengthPx / aspect).coerceAtMost(cs)
+
     if (ship.orientation == Orientation.Horizontal) {
+        val centerOffsetY = (cs - widthPx) / 2f
         drawImage(
             image = sprite,
             srcOffset = IntOffset(0, 0),
             srcSize = IntSize(sprite.width, sprite.height),
-            dstOffset = IntOffset(topLeft.x.toInt(), topLeft.y.toInt()),
-            dstSize = IntSize((cs * ship.size).toInt(), cs.toInt())
+            dstOffset = IntOffset(topLeft.x.toInt(), (topLeft.y + centerOffsetY).toInt()),
+            dstSize = IntSize(lengthPx.toInt(), widthPx.toInt())
         )
     } else {
+        // Draw horizontally then rotate 90° around top-left corner of the first cell
+        // so length becomes vertical, width stays perpendicular and centered.
+        val centerOffsetX = (cs - widthPx) / 2f
         withTransform({
-            translate(left = topLeft.x + cs, top = topLeft.y)
+            // After translate+rotate, drawing at (0, 0)..(lengthPx, widthPx)
+            // ends up at (topLeft.x + centerOffsetX, topLeft.y)..(topLeft.x + centerOffsetX + widthPx, topLeft.y + lengthPx)
+            translate(left = topLeft.x + cs - centerOffsetX, top = topLeft.y)
             rotate(degrees = 90f, pivot = Offset.Zero)
         }) {
             drawImage(
@@ -211,7 +224,7 @@ fun DrawScope.drawShipSprite(camera: GridCamera, ship: Ship, sprite: ImageBitmap
                 srcOffset = IntOffset(0, 0),
                 srcSize = IntSize(sprite.width, sprite.height),
                 dstOffset = IntOffset(0, 0),
-                dstSize = IntSize((cs * ship.size).toInt(), cs.toInt())
+                dstSize = IntSize(lengthPx.toInt(), widthPx.toInt())
             )
         }
     }

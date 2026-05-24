@@ -40,8 +40,9 @@ object Fleet {
         val placeable = ships.filter { it.type != ShipType.Submarine }
 
         for (ship in placeable) {
-            var success = false
-            repeat(300) {
+            var chosenCells: List<Coord>? = null
+            var chosenOri: Orientation = Orientation.Horizontal
+            for (attempt in 0 until 500) {
                 val ori = if (rng.nextBoolean()) Orientation.Horizontal else Orientation.Vertical
                 val size = ship.size
                 val maxX = if (ori == Orientation.Horizontal) fieldSize - size else fieldSize - 1
@@ -50,13 +51,14 @@ object Fleet {
                 val y = rng.nextInt(maxY + 1)
                 val cells = cellsFor(x, y, size, ori)
                 if (cells.all { canPlace(it, occupied, fieldSize) }) {
-                    cells.forEach { occupied[it.x][it.y] = true }
-                    placed.add(ship.copy(cells = cells, orientation = ori, placed = true))
-                    success = true
-                    return@repeat
+                    chosenCells = cells
+                    chosenOri = ori
+                    break
                 }
             }
-            if (!success) return null
+            val cells = chosenCells ?: return null
+            cells.forEach { occupied[it.x][it.y] = true }
+            placed.add(ship.copy(cells = cells, orientation = chosenOri, placed = true))
         }
         return placed + ships.filter { it.type == ShipType.Submarine }
     }

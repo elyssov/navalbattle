@@ -241,6 +241,11 @@ class GameViewModel : ViewModel() {
         val st = _state.value ?: return
         if (st.players[st.currentPlayer].nuclearUsed) return
         if (st.settings.fieldSize == FieldSize.Skirmish) return
+        // T-15 is a submarine-launched nuclear torpedo: require a deployed sub with charge
+        val hasNukeSub = st.players[st.currentPlayer].ships.any {
+            it.type == ShipType.Submarine && it.deployed && !it.sunk && it.nukeTorpedoLeft > 0
+        }
+        if (!hasNukeSub) return
         _screen.update { Screen.NukeRitual }
     }
 

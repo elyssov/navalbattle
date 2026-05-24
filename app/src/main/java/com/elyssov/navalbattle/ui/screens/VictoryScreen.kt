@@ -65,32 +65,6 @@ fun VictoryScreen(vm: GameViewModel) {
                 onClick = { vm.backToMenu() },
                 modifier = Modifier.fillMaxWidth().height(56.dp)
             ) { Text(stringResource(R.string.victory_continue)) }
-            OutlinedButton(
-                onClick = { showTip = true },
-                modifier = Modifier.fillMaxWidth().height(48.dp)
-            ) { Text(stringResource(R.string.menu_support)) }
         }
-    }
-
-    if (showTip) {
-        AlertDialog(
-            onDismissRequest = { showTip = false },
-            title = { Text(stringResource(R.string.tip_title)) },
-            text = {
-                Column {
-                    Text(stringResource(R.string.tip_message))
-                    Spacer(Modifier.height(8.dp))
-                    Text("Vietcombank", color = MaterialTheme.colorScheme.tertiary)
-                    Text("LISOVSKII EVGENII", style = MaterialTheme.typography.bodyMedium)
-                    Text("1051678656", style = MaterialTheme.typography.bodyMedium)
-                    Text("BFTVVNVX006", style = MaterialTheme.typography.bodyMedium)
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showTip = false }) {
-                    Text(stringResource(R.string.tip_close))
-                }
-            }
-        )
     }
 }

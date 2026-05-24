@@ -13,7 +13,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -63,11 +62,6 @@ fun MenuScreen(vm: GameViewModel) {
                 onClick = { vm.navigate(Screen.Settings) },
                 modifier = Modifier.fillMaxWidth().height(56.dp)
             ) { Text(stringResource(R.string.menu_settings)) }
-
-            OutlinedButton(
-                onClick = { /* about - todo */ },
-                modifier = Modifier.fillMaxWidth().height(48.dp)
-            ) { Text(stringResource(R.string.menu_about)) }
         }
         Spacer(Modifier.height(24.dp))
     }
