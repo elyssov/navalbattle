@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Морской Бой</string>
+
+    <!-- Меню -->
+    <string name="menu_title">Морской Бой</string>
+    <string name="menu_subtitle">Стратегическая версия</string>
+    <string name="menu_new_game">Новая игра</string>
+    <string name="menu_settings">Настройки</string>
+    <string name="menu_about">О проекте</string>
+    <string name="menu_support">Поддержать проект</string>
+
+    <!-- Настройки -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_field_size">Размер поля</string>
+    <string name="settings_landscape">Ландшафт</string>
+    <string name="settings_game_mode">Режим</string>
+    <string name="settings_capital_ship">Капитальный корабль</string>
+    <string name="settings_pcr_intercept">Интерактивный перехват ПКР</string>
+    <string name="settings_sound">Звук</string>
+    <string name="settings_language">Язык</string>
+    <string name="settings_ai_difficulty">Сложность ИИ</string>
+
+    <string name="field_30">30×30 (Стычка, 15–20 мин)</string>
+    <string name="field_50">50×50 (Эскадра, 30–45 мин)</string>
+    <string name="field_100">100×100 (Адмирал, 60–90 мин)</string>
+
+    <string name="landscape_ocean">Открытый океан</string>
+    <string name="landscape_wrecks">Кладбище кораблей</string>
+    <string name="landscape_islands">Острова</string>
+    <string name="landscape_archipelago">Архипелаг</string>
+
+    <string name="mode_ai">Против ИИ</string>
+    <string name="mode_hotseat">Хотсит (2 игрока)</string>
+
+    <string name="ship_tarkr">Тяжёлый атомный ракетный крейсер (ТАРКР)</string>
+    <string name="ship_carrier">Авианосец</string>
+    <string name="tarkr_desc">5 клеток • 4 ракеты «Вулкан»\nЯдерный реактор (центральная клетка)\nОгневая мощь, высокий риск</string>
+    <string name="carrier_desc">5 клеток • 3 разведчика + штурмовики\nЯдерный реактор (центральная клетка)\nРазведка, универсальность</string>
+
+    <string name="ai_easy">Лёгкий</string>
+    <string name="ai_medium">Средний</string>
+    <string name="ai_hard">Сложный</string>
+
+    <!-- Расстановка -->
+    <string name="placement_title">Расстановка флота</string>
+    <string name="placement_hint">Выбери корабль в списке, затем тапни по карте. Долгое нажатие — поворот.</string>
+    <string name="placement_auto">Авторасстановка</string>
+    <string name="placement_clear">Очистить</string>
+    <string name="placement_ready">Готов</string>
+
+    <!-- Бой -->
+    <string name="battle_fleet_map">Карта флота</string>
+    <string name="battle_radar">Радар</string>
+    <string name="battle_turn">Ход %1$d</string>
+    <string name="battle_player">Игрок %1$d</string>
+    <string name="action_move">Манёвр</string>
+    <string name="action_fire">Огонь</string>
+    <string name="action_recon">Разведка</string>
+    <string name="action_end_turn">Завершить ход</string>
+    <string name="action_skip">Пропуск</string>
+    <string name="action_pcr">ПКР «Вулкан»</string>
+    <string name="action_torpedo">Торпеда</string>
+    <string name="action_striker">Штурмовик</string>
+    <string name="action_air_recon">Авиаразведка</string>
+    <string name="action_nuke">ЯДЕРНЫЙ УДАР</string>
+
+    <!-- Хотсит -->
+    <string name="hotseat_handoff">Передай устройство: %1$s</string>
+    <string name="hotseat_ready">Я готов</string>
+
+    <!-- Победа -->
+    <string name="victory_title">ПОБЕДА</string>
+    <string name="defeat_title">ПОРАЖЕНИЕ</string>
+    <string name="victory_continue">В меню</string>
+
+    <!-- Поддержка -->
+    <string name="tip_title">Поддержать проект</string>
+    <string name="tip_message">Если игра понравилась — поддержать разработку можно через Vietcombank или PayPal.</string>
+    <string name="tip_close">Закрыть</string>
+
+    <!-- Общее -->
+    <string name="common_back">Назад</string>
+    <string name="common_cancel">Отмена</string>
+    <string name="common_ok">ОК</string>
+</resources>

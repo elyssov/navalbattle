@@ -1,0 +1,22 @@
+*.iml
+.gradle
+/local.properties
+.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+*.jks
+*.keystore
+
+# Build outputs
+app/build/
+build/
+
+# Generated APKs in subdirs (allow root APKs for distribution)
+**/build/outputs/apk/
+
+# OS
+Thumbs.db
