@@ -18,8 +18,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import com.elyssov.navalbattle.game.Orientation
+import com.elyssov.navalbattle.game.Ship
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
@@ -179,4 +185,34 @@ fun DrawScope.fillCell(camera: GridCamera, c: Coord, color: Color) {
 fun DrawScope.strokeCell(camera: GridCamera, c: Coord, color: Color, strokeWidth: Float = 2f) {
     val (pos, sz) = camera.cellRect(c)
     drawRect(color = color, topLeft = pos, size = sz, style = Stroke(width = strokeWidth))
+}
+
+fun DrawScope.drawShipSprite(camera: GridCamera, ship: Ship, sprite: ImageBitmap) {
+    if (ship.cells.isEmpty()) return
+    val cs = camera.cellPx
+    val anchor = ship.cells.first()
+    val (topLeft, _) = camera.cellRect(anchor)
+
+    if (ship.orientation == Orientation.Horizontal) {
+        drawImage(
+            image = sprite,
+            srcOffset = IntOffset(0, 0),
+            srcSize = IntSize(sprite.width, sprite.height),
+            dstOffset = IntOffset(topLeft.x.toInt(), topLeft.y.toInt()),
+            dstSize = IntSize((cs * ship.size).toInt(), cs.toInt())
+        )
+    } else {
+        withTransform({
+            translate(left = topLeft.x + cs, top = topLeft.y)
+            rotate(degrees = 90f, pivot = Offset.Zero)
+        }) {
+            drawImage(
+                image = sprite,
+                srcOffset = IntOffset(0, 0),
+                srcSize = IntSize(sprite.width, sprite.height),
+                dstOffset = IntOffset(0, 0),
+                dstSize = IntSize((cs * ship.size).toInt(), cs.toInt())
+            )
+        }
+    }
 }

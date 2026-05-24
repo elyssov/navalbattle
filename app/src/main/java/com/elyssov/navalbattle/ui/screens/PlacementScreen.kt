@@ -11,10 +11,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -34,23 +35,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.elyssov.navalbattle.R
 import com.elyssov.navalbattle.game.Coord
 import com.elyssov.navalbattle.game.Fleet
 import com.elyssov.navalbattle.game.GameViewModel
 import com.elyssov.navalbattle.game.Orientation
-import com.elyssov.navalbattle.game.Screen
 import com.elyssov.navalbattle.game.Ship
 import com.elyssov.navalbattle.game.ShipType
 import com.elyssov.navalbattle.game.TerrainKind
 import com.elyssov.navalbattle.ui.components.FleetGrid
 import com.elyssov.navalbattle.ui.components.drawGridLines
+import com.elyssov.navalbattle.ui.components.drawShipSprite
 import com.elyssov.navalbattle.ui.components.fillCell
 import com.elyssov.navalbattle.ui.components.rememberGridCamera
+import com.elyssov.navalbattle.ui.components.rememberShipSprites
 import com.elyssov.navalbattle.ui.theme.HitRed
 import com.elyssov.navalbattle.ui.theme.IslandGreen
 import com.elyssov.navalbattle.ui.theme.OceanBlue
 import com.elyssov.navalbattle.ui.theme.OceanShallow
+import com.elyssov.navalbattle.ui.theme.RadarAmber
 import com.elyssov.navalbattle.ui.theme.SeaSurface
 import com.elyssov.navalbattle.ui.theme.WreckBrown
 
@@ -69,6 +73,7 @@ fun PlacementScreen(vm: GameViewModel) {
     var selectedOri by remember { mutableStateOf(Orientation.Horizontal) }
 
     val camera = rememberGridCamera(fieldSize)
+    val sprites = rememberShipSprites()
 
     val shipColor = MaterialTheme.colorScheme.primary
     val gridColor = OceanShallow.copy(alpha = 0.4f)
@@ -79,36 +84,50 @@ fun PlacementScreen(vm: GameViewModel) {
     val placed = player.ships.filter { it.placed }
     val readyToFight = unplaced.isEmpty()
 
-    Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
-        Text(
-            stringResource(R.string.placement_title),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.tertiary,
-            modifier = Modifier.padding(8.dp)
-        )
+    Column(modifier = Modifier.fillMaxSize().systemBarsPadding().padding(8.dp)) {
 
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
-            Text("${unplaced.size} left", color = MaterialTheme.colorScheme.secondary)
-            Spacer(Modifier.width(16.dp))
+        // Header: title + counter + orientation toggle (compact)
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                if (selectedOri == Orientation.Horizontal) "→ horizontal" else "↓ vertical",
+                "P${playerIdx + 1} · ${stringResource(R.string.placement_title)}",
+                style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.tertiary,
-                modifier = Modifier.clickable {
-                    selectedOri = if (selectedOri == Orientation.Horizontal) Orientation.Vertical else Orientation.Horizontal
-                }
+                modifier = Modifier.weight(1f)
             )
+            Text("${unplaced.size}", color = RadarAmber, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.width(8.dp))
+            OutlinedButton(
+                onClick = {
+                    selectedOri = if (selectedOri == Orientation.Horizontal) Orientation.Vertical else Orientation.Horizontal
+                },
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+            ) {
+                Text(if (selectedOri == Orientation.Horizontal) "→" else "↓", fontWeight = FontWeight.Bold)
+            }
         }
 
-        Box(modifier = Modifier.fillMaxWidth().height(360.dp).padding(4.dp).border(1.dp, MaterialTheme.colorScheme.tertiary)) {
+        // Canvas — TAKES MOST SPACE via weight
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .border(1.dp, MaterialTheme.colorScheme.tertiary)
+        ) {
             FleetGrid(
                 camera = camera,
                 background = OceanBlue,
                 onCellTap = { tap ->
                     if (tap.x < 0 || tap.y < 0 || tap.x >= fieldSize || tap.y >= fieldSize) return@FleetGrid
-                    val sid = selectedShipId ?: return@FleetGrid
-                    val ship = player.ships.firstOrNull { it.id == sid && !it.placed } ?: return@FleetGrid
-                    tryPlace(vm, playerIdx, ship, tap, selectedOri, fieldSize)?.let {
-                        selectedShipId = unplaced.drop(1).firstOrNull { it.id != sid }?.id
+                    val sid = selectedShipId
+                    if (sid != null) {
+                        val ship = player.ships.firstOrNull { it.id == sid && !it.placed } ?: return@FleetGrid
+                        val placedOk = tryPlace(vm, playerIdx, ship, tap, selectedOri, fieldSize)
+                        if (placedOk) {
+                            selectedShipId = player.ships.firstOrNull { !it.placed && it.id != sid && it.type != ShipType.Submarine }?.id
+                        }
                     }
                 },
                 onCellLong = { tap ->
@@ -120,82 +139,100 @@ fun PlacementScreen(vm: GameViewModel) {
                     fillCell(cam, it.coord, if (it.kind == TerrainKind.Island) islandColor else wreckColor)
                 }
                 placed.forEach { ship ->
-                    ship.cells.forEach { c -> fillCell(cam, c, shipColor) }
+                    val sprite = sprites[ship.type]
+                    if (sprite != null) drawShipSprite(cam, ship, sprite)
+                    else ship.cells.forEach { fillCell(cam, it, shipColor) }
                 }
                 drawGridLines(cam, gridColor)
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedButton(
-                onClick = { vm.autoPlaceCurrent(playerIdx) },
-                modifier = Modifier.weight(1f)
-            ) { Text(stringResource(R.string.placement_auto)) }
-            OutlinedButton(
-                onClick = { vm.clearPlacement(playerIdx); selectedShipId = null },
-                modifier = Modifier.weight(1f)
-            ) { Text(stringResource(R.string.placement_clear)) }
-        }
-
-        Spacer(Modifier.height(4.dp))
-        Text(
-            stringResource(R.string.placement_hint),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-            modifier = Modifier.padding(horizontal = 8.dp)
-        )
-
+        // Roster (horizontal scroll) — always visible above buttons
         Box(
-            modifier = Modifier.fillMaxWidth().weight(1f).padding(8.dp)
-                .background(SeaSurface, RoundedCornerShape(8.dp))
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 72.dp, max = 84.dp)
+                .padding(top = 6.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(SeaSurface)
         ) {
             if (unplaced.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("All ships placed", color = MaterialTheme.colorScheme.tertiary)
+                    Text(
+                        if (lang == "ru") "Все корабли расставлены" else "All ships placed",
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
                 }
             } else {
-                LazyColumn(modifier = Modifier.padding(8.dp)) {
-                    items(unplaced) { ship ->
-                        ShipRosterRow(ship, lang, ship.id == selectedShipId) {
-                            selectedShipId = ship.id
-                        }
+                LazyRow(
+                    modifier = Modifier.fillMaxSize().padding(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    items(unplaced, key = { it.id }) { ship ->
+                        ShipChip(ship, lang, ship.id == selectedShipId) { selectedShipId = ship.id }
                     }
                 }
             }
         }
 
+        // Action buttons (compact row)
         Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            OutlinedButton(onClick = { vm.backToMenu() }, modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.common_back))
-            }
+            OutlinedButton(
+                onClick = { vm.autoPlaceCurrent(playerIdx); selectedShipId = null },
+                modifier = Modifier.weight(1f),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp)
+            ) { Text(stringResource(R.string.placement_auto), maxLines = 1) }
+            OutlinedButton(
+                onClick = { vm.clearPlacement(playerIdx); selectedShipId = null },
+                modifier = Modifier.weight(1f),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp)
+            ) { Text(stringResource(R.string.placement_clear), maxLines = 1) }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            OutlinedButton(
+                onClick = { vm.backToMenu() },
+                modifier = Modifier.weight(1f),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 10.dp)
+            ) { Text(stringResource(R.string.common_back)) }
             Button(
                 onClick = { vm.finishPlacement() },
                 enabled = readyToFight,
-                modifier = Modifier.weight(2f)
-            ) {
-                Text(stringResource(R.string.placement_ready))
-            }
+                modifier = Modifier.weight(2f),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 10.dp)
+            ) { Text(stringResource(R.string.placement_ready), fontWeight = FontWeight.Bold) }
         }
     }
 
     if (handoff) {
-        Box(
-            modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("📱 →", color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.displayLarge)
-                Spacer(Modifier.height(16.dp))
-                Text("Pass the device to P${playerIdx + 1}", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.height(24.dp))
-                Button(onClick = { vm.completeHandoff() }, modifier = Modifier.width(220.dp).height(56.dp)) {
-                    Text("I'm P${playerIdx + 1} — ready")
+        Dialog(onDismissRequest = {}) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(12.dp))
+                    .border(2.dp, RadarAmber, RoundedCornerShape(12.dp))
+                    .padding(24.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Text("📱 →", color = RadarAmber, style = MaterialTheme.typography.displayLarge)
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        if (lang == "ru") "Передай устройство P${playerIdx + 1}"
+                        else "Pass the device to P${playerIdx + 1}",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Spacer(Modifier.height(20.dp))
+                    Button(onClick = { vm.completeHandoff() }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                        Text(if (lang == "ru") "Я P${playerIdx + 1} — готов" else "I'm P${playerIdx + 1} — ready")
+                    }
                 }
             }
         }
@@ -203,37 +240,37 @@ fun PlacementScreen(vm: GameViewModel) {
 }
 
 @Composable
-private fun ShipRosterRow(ship: Ship, lang: String, selected: Boolean, onTap: () -> Unit) {
-    val border = if (selected) MaterialTheme.colorScheme.tertiary else Color.Transparent
+private fun ShipChip(ship: Ship, lang: String, selected: Boolean, onTap: () -> Unit) {
+    val bg = if (selected) MaterialTheme.colorScheme.primary else SeaSurface.copy(alpha = 0.6f)
+    val border = if (selected) RadarAmber else Color.Transparent
     Row(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .background(if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else Color.Transparent)
-            .border(1.dp, border, RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(8.dp))
+            .background(bg)
+            .border(1.5.dp, border, RoundedCornerShape(8.dp))
             .clickable { onTap() }
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             ship.type.abbr(lang),
             color = MaterialTheme.colorScheme.tertiary,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.width(64.dp)
+            fontWeight = FontWeight.Bold
         )
-        Text("«${ship.name(lang)}»", color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-        Text("${ship.size}×", color = MaterialTheme.colorScheme.secondary)
+        Spacer(Modifier.width(6.dp))
+        Text("${ship.size}", color = MaterialTheme.colorScheme.onSurface)
+        Spacer(Modifier.width(6.dp))
+        Text(
+            "«${ship.name(lang)}»",
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 
 private fun tryPlace(
-    vm: GameViewModel,
-    playerIdx: Int,
-    ship: Ship,
-    origin: Coord,
-    ori: Orientation,
-    fieldSize: Int
+    vm: GameViewModel, playerIdx: Int, ship: Ship, origin: Coord, ori: Orientation, fieldSize: Int
 ): Boolean {
     val state = vm.state.value ?: return false
     val cells = Fleet.cellsFor(origin.x, origin.y, ship.size, ori)

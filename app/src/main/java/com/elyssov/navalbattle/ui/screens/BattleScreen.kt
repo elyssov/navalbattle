@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -52,8 +53,10 @@ import com.elyssov.navalbattle.game.TerrainKind
 import com.elyssov.navalbattle.ui.audio.LocalAudio
 import com.elyssov.navalbattle.ui.components.FleetGrid
 import com.elyssov.navalbattle.ui.components.drawGridLines
+import com.elyssov.navalbattle.ui.components.drawShipSprite
 import com.elyssov.navalbattle.ui.components.fillCell
 import com.elyssov.navalbattle.ui.components.rememberGridCamera
+import com.elyssov.navalbattle.ui.components.rememberShipSprites
 import com.elyssov.navalbattle.ui.components.strokeCell
 import com.elyssov.navalbattle.ui.theme.HitRed
 import com.elyssov.navalbattle.ui.theme.IslandGreen
@@ -91,6 +94,7 @@ fun BattleScreen(vm: GameViewModel) {
     var view by remember { mutableStateOf(BattleView.Radar) }
     val cameraFleet = rememberGridCamera(n)
     val cameraRadar = rememberGridCamera(n)
+    val sprites = rememberShipSprites()
 
     val shipColor = MaterialTheme.colorScheme.primary
     val selectedShipColor = RadarAmber
@@ -115,7 +119,7 @@ fun BattleScreen(vm: GameViewModel) {
     val hasSub = player.ships.any { it.type == ShipType.Submarine && it.deployed && !it.sunk && it.torpedoesLeft > 0 }
     val hasUndeployedSub = player.ships.any { it.type == ShipType.Submarine && !it.deployed && !it.sunk }
 
-    Column(modifier = Modifier.fillMaxSize().padding(4.dp)) {
+    Column(modifier = Modifier.fillMaxSize().systemBarsPadding().padding(4.dp)) {
 
         // Top bar
         Row(
@@ -147,9 +151,9 @@ fun BattleScreen(vm: GameViewModel) {
             }
         }
 
-        // Canvas
+        // Canvas — flexible weight so it adapts to screen size
         Box(
-            modifier = Modifier.fillMaxWidth().height(340.dp).padding(8.dp).border(1.dp, MaterialTheme.colorScheme.tertiary)
+            modifier = Modifier.fillMaxWidth().weight(1f).padding(8.dp).border(1.dp, MaterialTheme.colorScheme.tertiary)
         ) {
             when (view) {
                 BattleView.FleetMap -> {
@@ -184,15 +188,18 @@ fun BattleScreen(vm: GameViewModel) {
                         }
                         if (viewerSeesShips) {
                             player.ships.filter { it.placed }.forEach { ship ->
+                                val sprite = sprites[ship.type]
+                                if (sprite != null && !ship.sunk) {
+                                    drawShipSprite(cam, ship, sprite)
+                                }
                                 val isSel = ship.id == selectedShipId
                                 ship.cells.forEachIndexed { idx, c ->
-                                    val color = when {
-                                        ship.sunk -> sunkC
-                                        ship.hits[idx] -> hitC
-                                        isSel -> selectedShipColor
-                                        else -> shipColor
+                                    when {
+                                        ship.sunk -> fillCell(cam, c, sunkC)
+                                        ship.hits[idx] -> fillCell(cam, c, hitC.copy(alpha = 0.7f))
+                                        isSel -> strokeCell(cam, c, selectedShipColor, 2f)
+                                        else -> {}
                                     }
-                                    fillCell(cam, c, color)
                                 }
                             }
                         }

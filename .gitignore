@@ -10,6 +10,8 @@
 local.properties
 *.jks
 *.keystore
+keystore.properties
+keystore.txt
 
 # Build outputs
 app/build/
