@@ -47,7 +47,13 @@ class GameViewModel : ViewModel() {
     private val _placingPlayer = MutableStateFlow(0)
     val placingPlayer: StateFlow<Int> = _placingPlayer.asStateFlow()
 
-    fun setLang(code: String) { _lang.update { code } }
+    fun setLang(code: String) {
+        _lang.update { code }
+        // Per-app locale: recreates Activity, strings.xml reloads from values-<lang>/.
+        androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(
+            androidx.core.os.LocaleListCompat.forLanguageTags(code)
+        )
+    }
     fun navigate(s: Screen) { _screen.update { s } }
     fun updateSettings(block: (GameSettings) -> GameSettings) { _settings.update(block) }
     fun setMode(m: BattleMode) {

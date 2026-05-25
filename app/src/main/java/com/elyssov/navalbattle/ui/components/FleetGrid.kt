@@ -30,6 +30,7 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import com.elyssov.navalbattle.game.Coord
 import kotlin.math.max
@@ -39,7 +40,8 @@ data class GridCamera(
     var scale: Float = 1f,
     var offset: Offset = Offset.Zero,
     var fieldSize: Int = 50,
-    var canvasSize: Size = Size.Zero
+    var canvasSize: Size = Size.Zero,
+    var initialFitDone: Boolean = false
 ) {
     val cellPx: Float get() = if (fieldSize == 0) 0f else min(canvasSize.width, canvasSize.height) / fieldSize * scale
 
@@ -83,6 +85,7 @@ fun FleetGrid(
     draw: DrawScope.(GridCamera) -> Unit
 ) {
     var cam by camera
+    val density = LocalDensity.current
 
     Canvas(
         modifier = modifier
@@ -135,7 +138,19 @@ fun FleetGrid(
             }
     ) {
         if (cam.canvasSize != size) {
-            cam = cam.copy(canvasSize = size)
+            // First time we know the actual canvas size — auto-fit zoom so cells are big enough
+            // to be readable on large fields (100×100 in particular). Aim for ~14dp per cell.
+            val minCellPx = 14f * density.density
+            val baseCellPx = min(size.width, size.height) / cam.fieldSize
+            val needScale = if (baseCellPx > 0f) (minCellPx / baseCellPx).coerceAtLeast(1f) else 1f
+            val initialScale = if (!cam.initialFitDone) needScale.coerceAtMost(4f) else cam.scale
+            val newOffset = if (!cam.initialFitDone) Offset.Zero else cam.offset
+            cam = cam.copy(
+                canvasSize = size,
+                scale = initialScale,
+                offset = newOffset,
+                initialFitDone = true
+            )
         }
         draw(cam)
     }

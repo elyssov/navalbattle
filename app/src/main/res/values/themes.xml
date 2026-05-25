@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.NavalBattle" parent="android:Theme.Material.NoActionBar">
+    <style name="Theme.NavalBattle" parent="Theme.AppCompat.NoActionBar">
         <item name="android:statusBarColor">#0A1929</item>
         <item name="android:navigationBarColor">#0A1929</item>
         <item name="android:windowBackground">@color/sea_background</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
     </style>
 </resources>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Морской Бой</string>
+    <string name="app_name">Naval Battle</string>
 
     <!-- Меню -->
     <string name="menu_title">Морской Бой</string>

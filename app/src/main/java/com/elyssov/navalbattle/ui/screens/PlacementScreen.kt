@@ -123,6 +123,12 @@ fun PlacementScreen(vm: GameViewModel) {
                 background = OceanBlue,
                 onCellTap = { tap ->
                     if (tap.x < 0 || tap.y < 0 || tap.x >= fieldSize || tap.y >= fieldSize) return@FleetGrid
+                    val existing = placed.firstOrNull { tap in it.cells }
+                    if (existing != null) {
+                        // Tap on an already-placed ship → rotate it 90°
+                        rotateExisting(vm, playerIdx, existing, fieldSize)
+                        return@FleetGrid
+                    }
                     val sid = selectedShipId
                     if (sid != null) {
                         val ship = player.ships.firstOrNull { it.id == sid && !it.placed } ?: return@FleetGrid
