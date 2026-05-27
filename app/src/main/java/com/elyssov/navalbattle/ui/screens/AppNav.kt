@@ -17,6 +17,7 @@ fun AppNav(vm: GameViewModel) {
     when (screen) {
         Screen.Menu -> MenuScreen(vm)
         Screen.Settings -> SettingsScreen(vm)
+        Screen.Help -> HelpScreen(vm)
         Screen.Placement -> PlacementScreen(vm)
         Screen.Battle -> BattleScreen(vm)
         Screen.NukeRitual -> NukeRitualScreen(vm)

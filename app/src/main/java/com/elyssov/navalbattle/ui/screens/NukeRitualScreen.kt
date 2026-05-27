@@ -1,5 +1,6 @@
 package com.elyssov.navalbattle.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +15,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.elyssov.navalbattle.R
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -68,8 +73,19 @@ fun NukeRitualScreen(vm: GameViewModel) {
         if (secondsLeft <= 0 && !launched) aborted = true
     }
 
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        Image(
+            painter = painterResource(
+                if (lang == "ru") R.drawable.nuke_ritual_ru else R.drawable.nuke_ritual_en
+            ),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize().alpha(0.45f)
+        )
+        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background.copy(alpha = 0.45f)))
+
     Column(
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding().padding(16.dp),
+        modifier = Modifier.fillMaxSize().systemBarsPadding().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -180,6 +196,7 @@ fun NukeRitualScreen(vm: GameViewModel) {
                 }
             }
         }
+    }
     }
 }
 

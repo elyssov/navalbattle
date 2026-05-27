@@ -1,5 +1,6 @@
 package com.elyssov.navalbattle.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,8 +26,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -35,60 +39,78 @@ import com.elyssov.navalbattle.R
 import com.elyssov.navalbattle.game.GameViewModel
 import com.elyssov.navalbattle.game.Screen
 import com.elyssov.navalbattle.ui.theme.RadarAmber
+import com.elyssov.navalbattle.ui.theme.SeaBackground
 import com.elyssov.navalbattle.ui.theme.SeaSurface
 
 @Composable
 fun MenuScreen(vm: GameViewModel) {
     val lang by vm.lang.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .systemBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Language picker — top, prominent
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
-        ) {
-            LangChip("EN", lang == "en") { vm.setLang("en") }
-            Spacer(Modifier.padding(horizontal = 4.dp))
-            LangChip("RU", lang == "ru") { vm.setLang("ru") }
-        }
-
-        Spacer(Modifier.height(32.dp))
-        Text(
-            stringResource(R.string.menu_title),
-            style = MaterialTheme.typography.displayLarge,
-            color = MaterialTheme.colorScheme.tertiary,
-            textAlign = TextAlign.Center
+    Box(modifier = Modifier.fillMaxSize().background(SeaBackground)) {
+        // Splash art background
+        Image(
+            painter = painterResource(R.drawable.splash_menu),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize().alpha(0.55f)
         )
-        Text(
-            stringResource(R.string.menu_subtitle),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.secondary,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(48.dp))
+        // Dark gradient overlay for text readability
+        Box(modifier = Modifier.fillMaxSize().background(SeaBackground.copy(alpha = 0.35f)))
 
         Column(
-            modifier = Modifier.fillMaxWidth().widthIn(max = 320.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Button(
-                onClick = { vm.startNewGame() },
-                modifier = Modifier.fillMaxWidth().height(56.dp)
-            ) { Text(stringResource(R.string.menu_new_game)) }
+            // Language picker
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                LangChip("EN", lang == "en") { vm.setLang("en") }
+                Spacer(Modifier.padding(horizontal = 4.dp))
+                LangChip("RU", lang == "ru") { vm.setLang("ru") }
+            }
 
-            Button(
-                onClick = { vm.navigate(Screen.Settings) },
-                modifier = Modifier.fillMaxWidth().height(56.dp)
-            ) { Text(stringResource(R.string.menu_settings)) }
+            Spacer(Modifier.height(24.dp))
+            Text(
+                stringResource(R.string.menu_title),
+                style = MaterialTheme.typography.displayLarge,
+                color = MaterialTheme.colorScheme.tertiary,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                stringResource(R.string.menu_subtitle),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.secondary,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(32.dp))
+
+            Column(
+                modifier = Modifier.fillMaxWidth().widthIn(max = 320.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(
+                    onClick = { vm.startNewGame() },
+                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                ) { Text(stringResource(R.string.menu_new_game)) }
+
+                Button(
+                    onClick = { vm.navigate(Screen.Settings) },
+                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                ) { Text(stringResource(R.string.menu_settings)) }
+
+                Button(
+                    onClick = { vm.navigate(Screen.Help) },
+                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                ) { Text(stringResource(R.string.menu_help)) }
+            }
+            Spacer(Modifier.height(16.dp))
         }
-        Spacer(Modifier.height(24.dp))
     }
 }
 

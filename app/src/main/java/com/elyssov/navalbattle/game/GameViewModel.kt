@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-enum class Screen { Menu, Settings, Placement, Battle, NukeRitual, Victory }
+enum class Screen { Menu, Settings, Help, Placement, Battle, NukeRitual, Victory }
 
 enum class BattleMode { Fire, Move, Radar, AirRecon, Pcr, Torpedo, NukeTorpedo, Striker, DeploySub }
 
