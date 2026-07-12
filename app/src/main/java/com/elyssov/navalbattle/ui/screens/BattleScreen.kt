@@ -82,6 +82,7 @@ fun BattleScreen(vm: GameViewModel) {
     val pcrLauncherIdx by vm.pcrLauncherIdx.collectAsState()
     val nuclearTargeting by vm.nuclearTargeting.collectAsState()
     val handoff by vm.handoffPending.collectAsState()
+    val acted by vm.actedThisTurn.collectAsState()
     val audio = LocalAudio.current
 
     val gs = state ?: return
@@ -201,6 +202,9 @@ fun BattleScreen(vm: GameViewModel) {
                     background = SeaBackground,
                     onCellTap = { c ->
                         if (gs.currentPlayer != me || c.x !in 0 until n || c.y !in 0 until n) return@FleetGrid
+                        // One offensive action per turn. Nuclear targeting is exempt — the
+                        // ritual is its own once-per-match flow gated by nuclearUsed.
+                        if (acted && !nuclearTargeting) return@FleetGrid
                         audio.play(Sfx.Click)
                         when {
                             nuclearTargeting -> { audio.play(Sfx.NukeBoom); vm.launchNuke(c) }
@@ -323,15 +327,15 @@ fun BattleScreen(vm: GameViewModel) {
                     Column(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             listOf(-3, -2, -1).forEach { d ->
-                                Button(onClick = { vm.moveShip(ship.id, d); vm.endTurn() }, modifier = Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(4.dp)) { Text("$d") }
+                                Button(onClick = { if (vm.moveShip(ship.id, d)) vm.endTurn() }, modifier = Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(4.dp)) { Text("$d") }
                             }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             listOf(1, 2, 3).forEach { d ->
-                                Button(onClick = { vm.moveShip(ship.id, d); vm.endTurn() }, modifier = Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(4.dp)) { Text("+$d") }
+                                Button(onClick = { if (vm.moveShip(ship.id, d)) vm.endTurn() }, modifier = Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(4.dp)) { Text("+$d") }
                             }
                         }
-                        Button(onClick = { vm.rotateShip(ship.id); vm.endTurn() }, modifier = Modifier.fillMaxWidth()) { Text("⟳ 90°") }
+                        Button(onClick = { if (vm.rotateShip(ship.id)) vm.endTurn() }, modifier = Modifier.fillMaxWidth()) { Text("⟳ 90°") }
                     }
                 }
             }

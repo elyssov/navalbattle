@@ -47,6 +47,15 @@ class GameViewModel : ViewModel() {
     private val _placingPlayer = MutableStateFlow(0)
     val placingPlayer: StateFlow<Int> = _placingPlayer.asStateFlow()
 
+    /** True once the current player has spent their single offensive/movement
+     *  action this turn (fire / PCR / torpedo / striker / nuke / move / rotate).
+     *  Reset on every turn change. The Help is explicit — "a maneuvering ship
+     *  doesn't fire" — one action per turn. Without this, Fire had no per-turn
+     *  limit and a player could carpet the whole enemy grid in one turn while the
+     *  AI took a single action: the game was trivially winnable. */
+    private val _actedThisTurn = MutableStateFlow(false)
+    val actedThisTurn: StateFlow<Boolean> = _actedThisTurn.asStateFlow()
+
     fun setLang(code: String) {
         _lang.update { code }
         // Per-app locale: recreates Activity, strings.xml reloads from values-<lang>/.
@@ -80,6 +89,7 @@ class GameViewModel : ViewModel() {
             )
         }
         _placingPlayer.update { 0 }
+        _actedThisTurn.update { false }
         _screen.update { Screen.Placement }
     }
 
@@ -141,7 +151,9 @@ class GameViewModel : ViewModel() {
     fun fireShot(target: Coord) {
         val st = _state.value ?: return
         if (st.phase != GamePhase.Battle) return
+        if (_actedThisTurn.value) return
         val after = Combat.regularShot(st, st.currentPlayer, target, _lang.value)
+        if (after !== st) _actedThisTurn.update { true }   // a shot was actually recorded
         _state.update { after }
         setMode(BattleMode.Fire)
         checkWinner()
@@ -163,9 +175,11 @@ class GameViewModel : ViewModel() {
 
     fun launchPcr(target: Coord) {
         val st = _state.value ?: return
+        if (_actedThisTurn.value) return
         val launcherIdx = _pcrLauncherIdx.value
         if (launcherIdx < 0) return
         val after = Combat.launchPcr(st, st.currentPlayer, launcherIdx, target, _lang.value)
+        if (after !== st) _actedThisTurn.update { true }
         _state.update { after }
         setMode(BattleMode.Fire)
         checkWinner()
@@ -173,14 +187,18 @@ class GameViewModel : ViewModel() {
 
     fun launchTorpedo(target: Coord, nuclear: Boolean = false) {
         val st = _state.value ?: return
+        if (_actedThisTurn.value) return
         val after = Combat.launchTorpedo(st, st.currentPlayer, target, nuclear, _lang.value)
+        if (after !== st) _actedThisTurn.update { true }
         _state.update { after }
         setMode(BattleMode.Fire)
     }
 
     fun launchStriker(target: Coord) {
         val st = _state.value ?: return
+        if (_actedThisTurn.value) return
         val after = Combat.launchStriker(st, st.currentPlayer, target, _lang.value)
+        if (after !== st) _actedThisTurn.update { true }
         _state.update { after }
         setMode(BattleMode.Fire)
         checkWinner()
@@ -211,20 +229,29 @@ class GameViewModel : ViewModel() {
         setMode(BattleMode.Fire)
     }
 
-    fun moveShip(shipId: String, dist: Int) {
-        val st = _state.value ?: return
-        val ship = st.players[st.currentPlayer].ships.firstOrNull { it.id == shipId } ?: return
+    /** Returns true only if the ship actually moved, so the caller ends the turn
+     *  only on a successful move (a rejected move must not silently forfeit a turn). */
+    fun moveShip(shipId: String, dist: Int): Boolean {
+        val st = _state.value ?: return false
+        if (_actedThisTurn.value) return false
+        val ship = st.players[st.currentPlayer].ships.firstOrNull { it.id == shipId } ?: return false
         val (ax, ay) = if (ship.orientation == Orientation.Horizontal) 1 to 0 else 0 to 1
-        val after = Movement.moveAlongAxis(st, st.currentPlayer, shipId, ax * dist, ay * dist) ?: return
+        val after = Movement.moveAlongAxis(st, st.currentPlayer, shipId, ax * dist, ay * dist) ?: return false
+        _actedThisTurn.update { true }
         _state.update { after }
         setMode(BattleMode.Fire)
+        return true
     }
 
-    fun rotateShip(shipId: String) {
-        val st = _state.value ?: return
-        val after = Movement.rotate(st, st.currentPlayer, shipId) ?: return
+    /** Returns true only if the ship actually rotated (see moveShip). */
+    fun rotateShip(shipId: String): Boolean {
+        val st = _state.value ?: return false
+        if (_actedThisTurn.value) return false
+        val after = Movement.rotate(st, st.currentPlayer, shipId) ?: return false
+        _actedThisTurn.update { true }
         _state.update { after }
         setMode(BattleMode.Fire)
+        return true
     }
 
     fun endTurn() {
@@ -238,11 +265,17 @@ class GameViewModel : ViewModel() {
         st = st.copy(currentPlayer = nextPlayer, turn = nextTurn)
         _state.update { st }
         setMode(BattleMode.Fire)
+        _actedThisTurn.update { false }
         checkWinner()
 
-        if (st.settings.mode == GameMode.Ai && st.currentPlayer == 1 && st.phase == GamePhase.Battle) {
+        // Re-read the phase AFTER checkWinner (which mutates _state). The local `st`
+        // snapshot still reads Battle even when advanceTorpedoes just sank the last
+        // ship, so the old `st.phase` guard let the AI take a full turn on a game that
+        // was already finished — shooting behind the Victory screen.
+        val phaseNow = _state.value?.phase
+        if (st.settings.mode == GameMode.Ai && st.currentPlayer == 1 && phaseNow == GamePhase.Battle) {
             aiTakeTurn()
-        } else if (st.settings.mode == GameMode.Hotseat && st.phase == GamePhase.Battle) {
+        } else if (st.settings.mode == GameMode.Hotseat && phaseNow == GamePhase.Battle) {
             _handoffPending.update { true }
         }
     }
@@ -279,6 +312,7 @@ class GameViewModel : ViewModel() {
             }
         _state.update { after }
         _nuclearTargeting.update { false }
+        _actedThisTurn.update { true }
         checkWinner()
     }
 
@@ -317,6 +351,9 @@ class GameViewModel : ViewModel() {
         val after = Ai.takeTurn(st, _lang.value)
         _state.update { after }
         checkWinner()
+        // If the AI's action won the game, stop — don't advance torpedoes / flip the
+        // turn / re-run checkWinner on an already-finished match.
+        if (_state.value?.phase != GamePhase.Battle) return
         var s = _state.value ?: return
         s = Combat.advanceTorpedoes(s, _lang.value)
         s = Recon.ageReconHits(s)
