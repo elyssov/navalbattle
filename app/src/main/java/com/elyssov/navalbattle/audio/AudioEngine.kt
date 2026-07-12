@@ -25,7 +25,19 @@ class AudioEngine(context: Context) {
     private val streams: Map<Sfx, Int>
     private var muted = false
 
+    /** WAV temp files awaiting SoundPool decode, keyed by sample id, so each can be
+     *  deleted the moment its load completes (see the listener below). */
+    private val tempFiles = java.util.concurrent.ConcurrentHashMap<Int, java.io.File>()
+
     init {
+        // Once SoundPool has decoded a sample into memory, its on-disk WAV is dead
+        // weight. Delete it immediately instead of relying on deleteOnExit, which
+        // only fires on process death — so every Activity recreation (e.g. an EN/RU
+        // language switch, which rebuilds AudioEngine) would otherwise leave 13 more
+        // temp WAVs piling up in the cache directory.
+        pool.setOnLoadCompleteListener { _, sampleId, _ ->
+            tempFiles.remove(sampleId)?.delete()
+        }
         // Generate procedural sounds (no asset files required)
         streams = mapOf(
             Sfx.Shot to loadGenerated(0.12, 220.0, 80.0, decay = 0.7),
@@ -81,7 +93,9 @@ class AudioEngine(context: Context) {
         // Workaround: write WAV bytes to a temp file, load that into SoundPool.
         val wav = pcmToWav(data, sampleRate)
         val tmp = java.io.File.createTempFile("nb_sfx_", ".wav").apply { writeBytes(wav); deleteOnExit() }
-        return pool.load(tmp.absolutePath, 1)
+        val id = pool.load(tmp.absolutePath, 1)
+        tempFiles[id] = tmp   // deleted on load-complete; deleteOnExit is the fallback
+        return id
     }
 
     private fun pcmToWav(data: ShortArray, sampleRate: Int): ByteArray {

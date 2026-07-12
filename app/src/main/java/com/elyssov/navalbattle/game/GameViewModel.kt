@@ -128,15 +128,28 @@ class GameViewModel : ViewModel() {
         }
         // AI placement (or hotseat both done)
         val n = st.settings.fieldSize.n
-        val newState = if (st.settings.mode == GameMode.Ai) {
-            val aiPlaced = Fleet.autoPlace(st.players[1].ships, n, st.terrain) ?: st.players[1].ships
-            st.copy(
-                phase = GamePhase.Battle,
-                players = st.players.mapIndexed { i, p -> if (i == 1) p.copy(ships = aiPlaced) else p }
-            )
+        val newState: GameState? = if (st.settings.mode == GameMode.Ai) {
+            // Retry auto-placement (each attempt reshuffles). NEVER fall back to the
+            // unplaced fleet and enter Battle: placed=false ships are invisible to
+            // checkVictory, so the player would win instantly on their first shot
+            // against an "already dead" AI. If placement genuinely can't succeed on
+            // this board, stay in Placement rather than start a broken match.
+            var aiPlaced = Fleet.autoPlace(st.players[1].ships, n, st.terrain)
+            var tries = 0
+            while (aiPlaced == null && tries < 20) {
+                aiPlaced = Fleet.autoPlace(st.players[1].ships, n, st.terrain)
+                tries++
+            }
+            aiPlaced?.let { placed ->
+                st.copy(
+                    phase = GamePhase.Battle,
+                    players = st.players.mapIndexed { i, p -> if (i == 1) p.copy(ships = placed) else p }
+                )
+            }
         } else {
             st.copy(phase = GamePhase.Battle)
         }
+        if (newState == null) return
         _state.update { newState }
         _screen.update { Screen.Battle }
         _placingPlayer.update { 0 }
@@ -206,8 +219,10 @@ class GameViewModel : ViewModel() {
 
     fun deploySubAt(anchor: Coord, ori: Orientation) {
         val st = _state.value ?: return
+        // Deploy window is turns 1..10 (Help). After that the sub is written off.
+        if (st.turn > 10) return
         val playerIdx = st.currentPlayer
-        val sub = st.players[playerIdx].ships.firstOrNull { it.type == ShipType.Submarine && !it.deployed } ?: return
+        val sub = st.players[playerIdx].ships.firstOrNull { it.type == ShipType.Submarine && !it.deployed && !it.sunk } ?: return
         val cells = Fleet.cellsFor(anchor.x, anchor.y, sub.size, ori)
         val n = st.settings.fieldSize.n
         if (cells.any { it.x !in 0 until n || it.y !in 0 until n }) return
@@ -262,6 +277,21 @@ class GameViewModel : ViewModel() {
         st = Recon.decrementCooldowns(st, st.currentPlayer)
         val nextPlayer = 1 - st.currentPlayer
         val nextTurn = if (nextPlayer == 0) st.turn + 1 else st.turn
+        // Crossing out of turn 10 (10 -> 11): any submarine never deployed is written
+        // off as lost, per the Help ("deploy by the end of turn ten — or she's lost").
+        if (st.turn == 10 && nextPlayer == 0) {
+            val newLogs = mutableListOf<LogEntry>()
+            val newPlayers = st.players.mapIndexed { idx, p ->
+                if (p.ships.none { it.type == ShipType.Submarine && !it.deployed && !it.sunk }) p
+                else {
+                    newLogs += LogEntry(st.turn, idx, LogKind.Warning, "Submarine never deployed by turn 10 — written off as lost.")
+                    p.copy(ships = p.ships.map {
+                        if (it.type == ShipType.Submarine && !it.deployed && !it.sunk) it.copy(sunk = true) else it
+                    })
+                }
+            }
+            st = st.copy(players = newPlayers, battleLog = st.battleLog + newLogs)
+        }
         st = st.copy(currentPlayer = nextPlayer, turn = nextTurn)
         _state.update { st }
         setMode(BattleMode.Fire)
@@ -335,7 +365,7 @@ class GameViewModel : ViewModel() {
                 }
             ) else p
         }
-        val coordStr = "${'A' + center.x}${center.y + 1}"
+        val coordStr = coordLabel(center.x, center.y)
         return state.copy(
             players = newPlayers,
             nuclearZones = state.nuclearZones + NuclearZone(center, 3),

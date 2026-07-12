@@ -32,7 +32,7 @@ object Combat {
                 }
             )
 
-            val coordStr = "${'A' + target.x}${target.y + 1}"
+            val coordStr = coordLabel(target.x, target.y)
             val logText = if (sunk) {
                 val name = updated.name(lang)
                 val sunkDesc = Texts.sunkDescription(lang)
@@ -63,7 +63,7 @@ object Combat {
                 newState = triggerNuclearExplosion(newState, defenderIdx, target, 5, lang, log = "AVIATION FUEL EXPLOSION at $coordStr!")
             }
         } else {
-            val coordStr = "${'A' + target.x}${target.y + 1}"
+            val coordStr = coordLabel(target.x, target.y)
             newState = newState.copy(
                 battleLog = newState.battleLog + LogEntry(state.turn, attackerIdx, LogKind.Info, "Miss at $coordStr")
             )
@@ -89,7 +89,7 @@ object Combat {
         val targetShip = defender.ships.firstOrNull {
             !it.sunk && it.placed && it.type != ShipType.Submarine && target in it.cells
         }
-        val coordStr = "${'A' + target.x}${target.y + 1}"
+        val coordStr = coordLabel(target.x, target.y)
         if (targetShip == null) {
             return newState.copy(
                 battleLog = newState.battleLog + LogEntry(state.turn, attackerIdx, LogKind.Info, "PCR Vulkan to $coordStr — empty water, missile lost.")
@@ -146,7 +146,7 @@ object Combat {
             battleLog = state.battleLog + LogEntry(
                 state.turn, attackerIdx,
                 if (nuclear) LogKind.Nuke else LogKind.Warning,
-                if (nuclear) "T-15 nuclear torpedo launched! 3 turns to impact!"
+                if (nuclear) "T-15 nuclear torpedo launched! 2 turns to impact!"
                 else "Torpedo launched! 533mm in the water!"
             )
         )
@@ -262,8 +262,20 @@ object Combat {
     }
 
     fun checkVictory(state: GameState): Int? {
-        val p0Alive = state.players[0].ships.any { !it.sunk && it.placed }
-        val p1Alive = state.players[1].ships.any { !it.sunk && it.placed }
+        fun alive(p: PlayerState): Boolean {
+            if (p.ships.any { !it.sunk && it.placed }) return true
+            // A submarine that hasn't been deployed yet still counts as a live asset
+            // while its deploy window is open (through turn 10, per the Help). Without
+            // this, sinking the enemy's surface fleet declared a win even though they
+            // could still deploy their sub — and a player holding the sub in reserve
+            // was wrongly declared the loser the instant their surface ships died.
+            if (state.turn <= 10 &&
+                p.ships.any { it.type == ShipType.Submarine && !it.sunk && !it.deployed }
+            ) return true
+            return false
+        }
+        val p0Alive = alive(state.players[0])
+        val p1Alive = alive(state.players[1])
         return when {
             !p0Alive && !p1Alive -> null
             !p0Alive -> 1

@@ -7,6 +7,20 @@ data class Coord(val x: Int, val y: Int) {
     operator fun plus(o: Coord) = Coord(x + o.x, y + o.y)
 }
 
+/** Battle-log grid label like "A1", "Z9", "AA12". Uses spreadsheet-style columns
+ *  (bijective base-26) so boards wider than 26 cells — Squadron 50×50, Admiral
+ *  100×100 — don't print non-letter garbage: the old `'A' + x` produced Unicode
+ *  junk (e.g. x=99 → code point 164) for every column past 'Z'. */
+fun coordLabel(x: Int, y: Int): String {
+    val sb = StringBuilder()
+    var col = x
+    while (col >= 0) {
+        sb.insert(0, 'A' + col % 26)
+        col = col / 26 - 1
+    }
+    return "$sb${y + 1}"
+}
+
 enum class Orientation { Horizontal, Vertical }
 
 @Serializable
