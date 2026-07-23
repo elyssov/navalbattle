@@ -14,14 +14,14 @@ val keystoreProps = Properties().apply {
 
 android {
     namespace = "com.elyssov.navalbattle"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.elyssov.navalbattle"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 8
-        versionName = "1.3.0"
+        targetSdk = 36
+        versionCode = 9
+        versionName = "1.3.1"
         vectorDrawables { useSupportLibrary = true }
     }
 
